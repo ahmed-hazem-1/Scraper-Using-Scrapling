@@ -165,51 +165,53 @@ class DuckDuckGoEngine(BaseEngine):
 
         for idx, element in enumerate(result_elements[:max_results]):
             try:
+                # Try multiple methods to extract title
                 title = None
-                for t_sel in ['a.result__a::text', 'h2.result__title::text', 'a::text']:
-                    title = element.css(t_sel).get()
-                    if title:
-                        break
-
+                title_selectors = ['a.result__a', 'h2.result__title a', 'h2 a', 'a']
+                for t_sel in title_selectors:
+                    title_elems = element.css(t_sel)
+                    if title_elems:
+                        # Try to get text content
+                        title_text = title_elems[0].css('::text').getall()
+                        if title_text:
+                            title = ' '.join([t.strip() for t in title_text if t.strip()])
+                            if title:
+                                logger.debug(f"[{self.name}] Result {idx}: found title with '{t_sel}': {title[:50]}")
+                                break
+                
+                # Try multiple methods to extract URL
                 url = None
-                for l_sel in ['a.result__a::attr(href)', 'a::attr(href)']:
-                    href = element.css(l_sel).get()
-                    if href:
-                        if href.startswith('//duckduckgo.com/l/?'):
-                            parsed = urllib.parse.urlparse(href)
-                            params_dict = urllib.parse.parse_qs(parsed.query)
-                            if 'uddg' in params_dict:
-                                href = urllib.parse.unquote(params_dict['uddg'][0])
-                        if href.startswith('//'):
-                            href = 'https:' + href
-                        if href.startswith('http'):
-                            url = href
-                            break
+                url_selectors = ['a.result__a', 'h2.result__title a', 'h2 a', 'a']
+                for l_sel in url_selectors:
+                    url_elems = element.css(l_sel)
+                    if url_elems:
+                        href = url_elems[0].attrib.get('href', '')
+                        if href:
+                            # Handle DuckDuckGo redirect URLs
+                            if href.startswith('//duckduckgo.com/l/?') or href.startswith('/l/?'):
+                                parsed = urllib.parse.urlparse(href)
+                                params_dict = urllib.parse.parse_qs(parsed.query)
+                                if 'uddg' in params_dict:
+                                    href = urllib.parse.unquote(params_dict['uddg'][0])
+                            if href.startswith('//'):
+                                href = 'https:' + href
+                            if href.startswith('http'):
+                                url = href
+                                logger.debug(f"[{self.name}] Result {idx}: found URL with '{l_sel}': {url[:80]}")
+                                break
 
                 snippet = None
                 content = None
                 date = None
                 
-                # Extract snippet from search result page
-                snippet_elem = element.css('a.result__snippet').get()
-                snippet_content = None
-                
-                if snippet_elem:
-                    # Get all text content from the snippet
-                    snippet_texts = element.css('a.result__snippet *::text').getall()
+                # Extract snippet from search result page  
+                snippet_selectors = ['a.result__snippet', 'div.result__snippet', 'div.snippet', '.result-snippet']
+                for s_sel in snippet_selectors:
+                    snippet_texts = element.css(f'{s_sel} *::text').getall()
                     if snippet_texts:
-                        snippet_content = ' '.join([t.strip() for t in snippet_texts if t.strip()])
-                    
-                    # Get basic snippet (first text node)
-                    snippet = element.css('a.result__snippet::text').get()
-                    if not snippet:
-                        snippet = snippet_content[:200] + '...' if snippet_content and len(snippet_content) > 200 else snippet_content
-                
-                # Fallback snippet selectors
-                if not snippet:
-                    for s_sel in ['div.result__snippet::text', 'div.snippet::text']:
-                        snippet = element.css(s_sel).get()
-                        if snippet and len(snippet.strip()) > 10:
+                        snippet = ' '.join([t.strip() for t in snippet_texts if t.strip()])
+                        if snippet:
+                            logger.debug(f"[{self.name}] Result {idx}: found snippet with '{s_sel}': {snippet[:50]}")
                             break
                 
                 # Fetch full page content from the result URL
@@ -232,6 +234,12 @@ class DuckDuckGoEngine(BaseEngine):
                             date = match.group(1).strip()
                             break
 
+                # Log validation results
+                if not title:
+                    logger.warning(f"[{self.name}] Result {idx}: Missing title")
+                if not url:
+                    logger.warning(f"[{self.name}] Result {idx}: Missing URL")
+                
                 if not title or not url:
                     continue
 

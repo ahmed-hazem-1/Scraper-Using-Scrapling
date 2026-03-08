@@ -17,6 +17,8 @@ class BingEngine(BaseEngine):
     def __init__(self, settings):
         super().__init__(settings)
         self.fetcher = Fetcher()
+        # Configure Fetcher with Chrome impersonation for stealth
+        self.fetcher.configure(browser='chrome', os='windows', http_version=2)
 
     def search(self, query: str, limit: int, year: int = None) -> List[SearchResult]:
         # Note: year parameter not yet implemented for Bing
@@ -25,10 +27,9 @@ class BingEngine(BaseEngine):
         locale = "ar-EG" if is_arabic else "en-US"
         search_url = f"https://www.bing.com/search?q={quote_plus(query)}&count={limit}&setlang={locale}&mkt={locale}&cc=EG"
         try:
-            # Use curl_cffi with Chrome impersonation for better stealth
+            # Fetch with configured browser fingerprint
             page = self.fetcher.get(
                 url=search_url,
-                impersonate='chrome120',
                 follow_redirects=True,
                 timeout=30
             )
