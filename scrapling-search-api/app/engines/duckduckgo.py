@@ -253,7 +253,7 @@ class DuckDuckGoEngine(BaseEngine):
                 logger.debug(f"[{self.name}] Result {len(results)}: {title[:60]}")
 
             except Exception as e:
-                logger.debug(f"[{self.name}] Failed to parse result {idx}: {e}")
+                logger.warning(f"[{self.name}] Failed to parse result {idx}: {type(e).__name__}: {e}")
                 continue
 
         return results
