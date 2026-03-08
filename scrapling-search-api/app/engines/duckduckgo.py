@@ -217,8 +217,8 @@ class DuckDuckGoEngine(BaseEngine):
                 # Fetch full page content from the result URL
                 content = self._fetch_page_content(url) if url else ""
                 
-                # Try to extract date from snippet_content first, then full content
-                search_text = snippet_content if snippet_content else content
+                # Try to extract date from snippet first, then full content
+                search_text = snippet if snippet else content
                 if search_text:
                     # Look for common date patterns in text
                     import re
