@@ -52,7 +52,8 @@ class EngineManager:
         query: str, 
         limit: int,
         preferred_engine: Optional[str] = None,
-        strict_mode: bool = False
+        strict_mode: bool = False,
+        year: Optional[int] = None
     ) -> tuple[List[SearchResult], str]:
         """
         Search using available engines with automatic fallback.
@@ -65,6 +66,7 @@ class EngineManager:
             limit: Maximum number of results
             preferred_engine: Optional engine name to try first
             strict_mode: If True, only try the preferred engine (no fallback)
+            year: Optional year to filter results by
         
         Returns:
             tuple: (list of results, engine name used)
@@ -92,7 +94,7 @@ class EngineManager:
             try:
                 logger.info(f"Trying engine: {engine.name}")
 
-                results = engine.search(query, limit)
+                results = engine.search(query, limit, year=year)
 
                 if len(results) == 0:
                     logger.warning(f"{engine.name} returned no results, trying next engine...")

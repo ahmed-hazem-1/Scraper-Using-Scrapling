@@ -43,7 +43,8 @@ class SearchService:
         limit: int, 
         sources: Optional[List[str]] = None,
         preferred_engine: Optional[str] = None,
-        strict_mode: bool = False
+        strict_mode: bool = False,
+        year: Optional[int] = None
     ) -> SearchResponse:
         """
         Perform a web search with automatic engine fallback.
@@ -60,6 +61,7 @@ class SearchService:
             sources: Optional list of domain names to filter results by
             preferred_engine: Optional preferred engine name ("duckduckgo", "bing", or "google")
             strict_mode: If True, only try the preferred engine (no fallback)
+            year: Optional year to filter results by
         
         Returns:
             SearchResponse: Search response with results and metadata
@@ -67,7 +69,8 @@ class SearchService:
         sources_info = f", sources={sources}" if sources else ""
         engine_info = f", preferred_engine={preferred_engine}" if preferred_engine else ""
         strict_info = ", strict_mode=True" if strict_mode else ""
-        logger.info(f"Search request: query='{query}', limit={limit}{sources_info}{engine_info}{strict_info}")
+        year_info = f", year={year}" if year else ""
+        logger.info(f"Search request: query='{query}', limit={limit}{sources_info}{engine_info}{strict_info}{year_info}")
         
         try:
             # Search using EngineManager (handles fallback automatically)
@@ -75,7 +78,8 @@ class SearchService:
                 query=query,
                 limit=limit,
                 preferred_engine=preferred_engine,
-                strict_mode=strict_mode
+                strict_mode=strict_mode,
+                year=year
             )
             
             # Apply source filtering if specified

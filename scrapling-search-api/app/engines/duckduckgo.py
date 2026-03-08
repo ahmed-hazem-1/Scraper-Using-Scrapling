@@ -31,21 +31,72 @@ class DuckDuckGoEngine(BaseEngine):
     def name(self) -> str:
         """Get engine name."""
         return "duckduckgo"
+    
+    def _fetch_page_content(self, url: str) -> str:
+        """
+        Fetch and extract full text content from a URL.
+        
+        Args:
+            url: The URL to fetch
+            
+        Returns:
+            str: Extracted text content, or empty string on failure
+        """
+        try:
+            logger.debug(f"[{self.name}] Fetching content from: {url}")
+            response = self.fetcher.get(url, timeout=10)
+            
+            if response.status != 200:
+                logger.warning(f"[{self.name}] Failed to fetch {url}: status {response.status}")
+                return ""
+            
+            # Extract text content - try to get main content areas
+            # Priority: article, main, body content
+            text_content = ""
+            
+            # Try to find article/main content first
+            for selector in ['article', 'main', '[role="main"]', '.content', '#content']:
+                elements = response.css(selector)
+                if elements:
+                    # Get all text from the element
+                    texts = elements[0].css('*::text').getall()
+                    text_content = ' '.join([t.strip() for t in texts if t.strip()])
+                    if len(text_content) > 100:  # Only use if we got substantial content
+                        break
+            
+            # Fallback: get all paragraph text
+            if not text_content or len(text_content) < 100:
+                paragraphs = response.css('p::text').getall()
+                text_content = ' '.join([p.strip() for p in paragraphs if p.strip()])
+            
+            # Limit content size (first 5000 characters)
+            if len(text_content) > 5000:
+                text_content = text_content[:5000] + "..."
+            
+            logger.debug(f"[{self.name}] Extracted {len(text_content)} chars from {url}")
+            return text_content
+            
+        except Exception as e:
+            logger.warning(f"[{self.name}] Error fetching content from {url}: {e}")
+            return ""
 
-    def search(self, query: str, limit: int) -> List[SearchResult]:
+    def search(self, query: str, limit: int, year: int = None) -> List[SearchResult]:
         """
         Search using DuckDuckGo via Scrapling.
 
         Args:
             query: Search query string
             limit: Maximum number of results
+            year: Optional year to filter results by
 
         Returns:
             List[SearchResult]: Search results
         """
-        logger.info(f"[{self.name}] Searching for '{query}' (limit={limit})")
+        # Add year to query if specified
+        search_query = f"{query} {year}" if year else query
+        logger.info(f"[{self.name}] Searching for '{search_query}' (limit={limit})")
 
-        url = f"{self.base_url}?{urllib.parse.urlencode({'q': query})}"
+        url = f"{self.base_url}?{urllib.parse.urlencode({'q': search_query})}"
 
         for attempt in range(1, self.settings.max_retries + 1):
             try:
@@ -136,10 +187,50 @@ class DuckDuckGoEngine(BaseEngine):
                             break
 
                 snippet = None
-                for s_sel in ['a.result__snippet::text', 'div.result__snippet::text', 'div.snippet::text']:
-                    snippet = element.css(s_sel).get()
-                    if snippet and len(snippet.strip()) > 10:
-                        break
+                content = None
+                date = None
+                
+                # Extract snippet from search result page
+                snippet_elem = element.css('a.result__snippet').get()
+                snippet_content = None
+                
+                if snippet_elem:
+                    # Get all text content from the snippet
+                    snippet_texts = element.css('a.result__snippet *::text').getall()
+                    if snippet_texts:
+                        snippet_content = ' '.join([t.strip() for t in snippet_texts if t.strip()])
+                    
+                    # Get basic snippet (first text node)
+                    snippet = element.css('a.result__snippet::text').get()
+                    if not snippet:
+                        snippet = snippet_content[:200] + '...' if snippet_content and len(snippet_content) > 200 else snippet_content
+                
+                # Fallback snippet selectors
+                if not snippet:
+                    for s_sel in ['div.result__snippet::text', 'div.snippet::text']:
+                        snippet = element.css(s_sel).get()
+                        if snippet and len(snippet.strip()) > 10:
+                            break
+                
+                # Fetch full page content from the result URL
+                content = self._fetch_page_content(url) if url else ""
+                
+                # Try to extract date from snippet_content first, then full content
+                search_text = snippet_content if snippet_content else content
+                if search_text:
+                    # Look for common date patterns in text
+                    import re
+                    date_patterns = [
+                        r'(?:Release date|Published|Posted|Updated):\s*([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})',
+                        r'([A-Za-z]+\s+\d{1,2},?\s+\d{4})',  # e.g. "Feb. 3, 2026" or "February 3, 2026"
+                        r'(\d{1,2}\s+[A-Za-z]+\s+\d{4})',  # e.g. "3 Feb 2026"
+                        r'(\d{4}-\d{2}-\d{2})',  # ISO format
+                    ]
+                    for pattern in date_patterns:
+                        match = re.search(pattern, search_text)
+                        if match:
+                            date = match.group(1).strip()
+                            break
 
                 if not title or not url:
                     continue
@@ -147,7 +238,9 @@ class DuckDuckGoEngine(BaseEngine):
                 results.append(SearchResult(
                     title=title.strip(),
                     url=url.strip(),
-                    snippet=snippet.strip() if snippet else ""
+                    snippet=snippet.strip() if snippet else "",
+                    content=content.strip() if content else None,
+                    date=date
                 ))
                 logger.debug(f"[{self.name}] Result {len(results)}: {title[:60]}")
 

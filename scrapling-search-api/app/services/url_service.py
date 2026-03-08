@@ -242,6 +242,14 @@ def is_valid_search_result_url(url: str) -> bool:
     if 'duckduckgo.com' in url and '/l/?' not in url:
         return False
     
+    # Skip Bing internal redirect URLs
+    if 'bing.com/ck/a' in url:
+        return False
+    
+    # Skip Bing ad tracking URLs
+    if 'msockid=' in url:
+        return False
+    
     return validate_url(url)
 
 

@@ -38,13 +38,14 @@ class BaseEngine(ABC):
         pass
     
     @abstractmethod
-    def search(self, query: str, limit: int) -> List[SearchResult]:
+    def search(self, query: str, limit: int, year: int = None) -> List[SearchResult]:
         """
         Perform a search using this engine.
         
         Args:
             query: Search query string
             limit: Maximum number of results to return
+            year: Optional year to filter results by
         
         Returns:
             List[SearchResult]: List of search results

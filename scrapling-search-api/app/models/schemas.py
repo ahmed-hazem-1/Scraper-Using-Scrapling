@@ -21,17 +21,23 @@ class SearchResult(BaseModel):
         title: Page title
         snippet: Brief description/excerpt from the page
         url: Full URL to the page
+        content: Full text content extracted from result (more comprehensive than snippet)
+        date: Date string if found in the result (format varies by source)
     """
     title: str = Field(..., description="Page title")
     snippet: str = Field(..., description="Brief description or excerpt")
     url: str = Field(..., description="Full URL to the result page")
+    content: Optional[str] = Field(None, description="Full text content from search result")
+    date: Optional[str] = Field(None, description="Date string extracted from result if available")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "title": "Python Programming Language",
                 "snippet": "Python is a versatile and easy-to-learn language...",
-                "url": "https://www.python.org/"
+                "url": "https://www.python.org/",
+                "content": "Python is a versatile and easy-to-learn programming language. Released in 1991, it emphasizes code readability...",
+                "date": "Feb. 3, 2026"
             }
         }
 

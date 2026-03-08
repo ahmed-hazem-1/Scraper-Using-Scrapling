@@ -38,13 +38,14 @@ class GoogleEngine(BaseEngine):
     def name(self) -> str:
         return "google"
 
-    def search(self, query: str, limit: int) -> List[SearchResult]:
+    def search(self, query: str, limit: int, year: int = None) -> List[SearchResult]:
         """
         Search using Google via Playwright browser automation.
 
         Args:
             query: Search query string
             limit: Maximum number of results
+            year: Optional year to filter results by (not yet implemented)
 
         Returns:
             List[SearchResult]: Search results
@@ -184,7 +185,9 @@ class GoogleEngine(BaseEngine):
                 results.append(SearchResult(
                     title=title.strip(),
                     url=url.strip(),
-                    snippet=snippet.strip() if snippet else ""
+                    snippet=snippet.strip() if snippet else "",
+                    content=None,
+                    date=None
                 ))
                 logger.debug(f"[{self.name}] Result {len(results)}: {title[:60]}")
 

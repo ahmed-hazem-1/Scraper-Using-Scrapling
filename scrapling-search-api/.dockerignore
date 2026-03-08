@@ -19,3 +19,7 @@ venv
 .vscode
 .idea
 *.log
+test_*.py
+debug_*.py
+analyze_*.py
+*.html

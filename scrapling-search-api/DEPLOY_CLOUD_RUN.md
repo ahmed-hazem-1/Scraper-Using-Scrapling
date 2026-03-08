@@ -1,5 +1,44 @@
 # Google Cloud Run Deployment Guide
 
+## Quick Start
+
+### Automated Deployment (Recommended)
+
+**Linux/Mac:**
+```bash
+chmod +x deploy-cloud-run.sh
+./deploy-cloud-run.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+.\deploy-cloud-run.ps1
+```
+
+The script will:
+1. Enable required Google Cloud APIs
+2. Build and deploy your application
+3. Configure Cloud Run settings
+4. Test the deployed service
+5. Display the service URL
+
+### Test Locally First
+
+Before deploying, test the Docker image locally:
+
+**Linux/Mac:**
+```bash
+chmod +x test-docker.sh
+./test-docker.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+.\test-docker.ps1
+```
+
+---
+
 ## Prerequisites
 - Google Cloud SDK installed (`gcloud` CLI)
 - Google Cloud project created

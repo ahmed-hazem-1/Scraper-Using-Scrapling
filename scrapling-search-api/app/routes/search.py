@@ -98,6 +98,13 @@ async def search(
         description="Strict mode: only use specified engine, no fallback. Requires 'engine' parameter.",
         example=False
     ),
+    year: int = Query(
+        default=None,
+        description="Filter results by year (e.g., 2026). Adds year to query and filters results.",
+        ge=2000,
+        le=2100,
+        example=2026
+    ),
     settings: Settings = Depends(get_settings),
     search_service: SearchService = Depends(get_search_service)
 ) -> SearchResponse:
@@ -147,7 +154,8 @@ async def search(
     
     # Log search parameters
     engine_info = f", engine={engine}" if engine else ""
-    logger.info(f"Search endpoint called: query='{q}', limit={limit}{engine_info}")
+    year_info = f", year={year}" if year else ""
+    logger.info(f"Search endpoint called: query='{q}', limit={limit}{engine_info}{year_info}")
     
     try:
         # Perform search using the search service with multi-engine support
@@ -156,7 +164,8 @@ async def search(
             limit=limit, 
             sources=sources_list,
             preferred_engine=engine,
-            strict_mode=strict
+            strict_mode=strict,
+            year=year
         )
         return response
         

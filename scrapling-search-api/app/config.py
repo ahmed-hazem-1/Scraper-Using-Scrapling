@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     """
     
     # Server Configuration
-    port: int = 8080
+    port: int = int(os.getenv("PORT", "8080"))  # Cloud Run sets PORT env var
     host: str = "0.0.0.0"
     
     # Search Configuration
